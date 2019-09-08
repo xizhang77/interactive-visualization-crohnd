@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="static/lib/css//bootstrap.min.css">
+  <link rel="stylesheet" href="static/lib/css/keen-dashboards.css">
+  
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+
+  <style>
+  svg {
+    font: 10px sans-serif;
+    text-anchor: middle;
+  }
+
+  rect {
+    stroke: lightgray;
+    stoke-width: 1px;
+    fill: none;
+  }
+
+  .background path {
+    fill: none;
+    stroke: #ddd;
+    shape-rendering: crispEdges;
+  }
+  .foreground path {
+    fill: none;
+    stroke: #4682b4;
+  }
+
+  .brush .extent {
+    fill-opacity: .1;
+    stroke: #ddd;
+    shape-rendering: crispEdges;
+  }
+
+  .axis line,
+  .axis path {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges；
+  }
+
+  .axis text {
+    text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+    cursor: move;
+  }
+  </style>
+</head>
+
+<body class="application">
+
+  <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand">Crohn Disease's Attributes Evaluation</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+
+      <div class="col-sm-4">
+        <div class="row">
+
+          <!-- Correlogram --> 
+          <div class="col-sm-12">
+            <div class="chart-wrapper">
+              <div class="chart-title">
+                Correlogram
+              </div>
+              <div class="chart-stage">
+                <div id="corr-chart"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Correlogram --> 
+
+          <!-- MDS ScatterPlot -->
+          <div class="col-sm-6">
+            <div class="chart-wrapper">
+              <div class="chart-title">
+                MDS On Attributes
+              </div>
+              <div class="chart-stage">
+                <div id="scatter-plot"></div>
+              </div>
+            </div>
+          </div>
+          <!-- MDS ScatterPlot -->
+
+          <!-- Age -->
+          <div class="col-sm-6">
+            <div class="chart-wrapper">
+              <div class="chart-title">
+                Age Segment
+              </div>
+              <div class="chart-stage">
+                <div id="age-rowchart"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Age -->
+
+        </div>
+      </div>
+
+      <div class="col-sm-8">
+        <div class="row">
+          <!-- Parallel Coordinates -->
+          <div class="col-sm-12">
+            <div class="chart-wrapper">
+              <div class="chart-title">
+                Parallel Coordinates
+              </div>
+              <div class="chart-stage">
+                <div id="pc-graph"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Parallel Coordinates -->
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+
+<script>
+pc_data = {{pc_data | safe}};
+mds_data = {{mds_data | safe}};
+corr_data = {{corr_data | safe}};
+
+
+function corr_gram(location)
+{
+  var data = [];
+
+  for (x in corr_data) {
+    for (y in corr_data[ x ]) {
+      data.push({
+        x: x,
+        y: y,
+        value: + corr_data[ x ][ y ]
+      });
+    }
+  }
+
+  var margin = {top: 20, right: 60, bottom: 25, left: 20},
+      width = 450 - margin.left - margin.right,
+      height = 400 - margin.top - margin.bottom,
+      domain = d3.set(data.map(function(d) {return d.x })).values(),
+      num = Math.sqrt(data.length),
+      color = d3.scale.linear()
+        .domain([-1, 0, 1])
+        .range(["#B22222", "#fff", "#4682b4"]);
+
+  var x = d3.scale
+    .ordinal()
+    .rangePoints([0, width])
+    .domain(domain);
+
+  var y = d3.scale
+    .ordinal()
+    .rangePoints([0, height])
+    .domain(domain),
+  
+  xSpace = x.range()[1] - x.range()[0],
+  ySpace = y.range()[1] - y.range()[0];
+
+  var svg = d3.select(location)
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  var cor = svg.selectAll(".cor")
+    .data(data)
+    .enter()
+    .append("g")
+    .attr("class", "cor")
+    .attr("transform", function(d) {
+      return "translate(" + x(d.x) + "," + y(d.y) + ")";
+    });
+
+    cor.append("rect")
+        .attr("width", xSpace)
+        .attr("height", ySpace)
+        .attr("x", -xSpace / 2)
+        .attr("y", -ySpace / 2)
+
+    cor.filter(function(d){
+      var ypos = domain.indexOf(d.y);
+      var xpos = domain.indexOf(d.x);
+      for (var i = (ypos + 1); i < num; i++){
+        if (i === xpos) return false;
+        }
+        return true;
+      })
+    .append("text")
+    .attr("y", 5)
+    .text(function(d) {
+      if (d.x === d.y) {
+        return d.x;
+      } 
+      else {
+        return d.value.toFixed(2);
+      }
+    })
+    .style("fill", function(d){
+      if (d.value === 1) {
+        return "#000";
+      } 
+      else {
+        return color(d.value);
+      }
+    });
+
+    cor.filter(function(d){
+      var ypos = domain.indexOf(d.y);
+      var xpos = domain.indexOf(d.x);
+      for (var i = (ypos + 1); i < num; i++){
+        if (i === xpos) return true;
+      }
+      return false;
+    })
+      .append("circle")
+      .attr("r", (width / (num * 2) - 5))
+      .style("fill", function(d){
+        if (d.value === 1) {
+          return "#000";
+        } 
+        else {
+          return color(d.value);
+        }
+      });
+        
+  var aS = d3.scale
+      .linear()
+      .range([-margin.top + 5, height + margin.bottom - 5])
+      .domain([1, -1]);
+
+  var yA = d3.svg.axis()
+      .orient("right")
+      .scale(aS)
+      .tickPadding(7);
+
+  var aG = svg.append("g")
+      .attr("class", "y axis")
+      .call(yA)
+      .attr("transform", "translate(" + (width + margin.right / 2) + " ,0)")
+
+  var iR = d3.range(-1, 1.01, 0.01);
+  var h = height / iR.length + 3;
+  
+  iR.forEach(function(d){
+    aG.append('rect')
+      .style('fill',color(d))
+      .style('stroke-width', 0) 
+      .style('stoke', 'none')
+      .attr('height', h)
+      .attr('width', 10)
+      .attr('x', 0)
+      .attr('y', aS(d))
+    });
+
+}
+
+function par_coordinate(location)
+{
+  var margin = {top: 20, right: 20, bottom: 20, left: 20},
+    width = 1000 - margin.left - margin.right,
+    height = 700 - margin.top - margin.bottom;
+
+  var x = d3.scale.ordinal().rangePoints([0, width], 1),
+      y = {},
+      dragging = {};
+
+  var line = d3.svg.line(),
+      axis = d3.svg.axis().orient("left"),
+      background,
+      foreground;
+
+  var svg = d3.select(location).append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+    x.domain(dimensions = d3.keys(pc_data[0]).filter(function(d) {
+      return d != "age_segment" && (y[d] = d3.scale.linear()
+        .domain(d3.extent(pc_data, function(p) { return + p[d]; }))
+        .range([height, 0]));
+    }));
+
+    background = svg.append("g")
+      .attr("class", "background")
+      .selectAll("path")
+      .data(pc_data)
+      .enter().append("path")
+      .attr("d", path);
+
+    foreground = svg.append("g")
+      .attr("class", "foreground")
+      .selectAll("path")
+      .data(pc_data)
+      .enter().append("path")
+      .attr("d", path);
+
+    var g = svg.selectAll(".dimension")
+      .data(dimensions)
+      .enter().append("g")
+      .attr("class", "dimension")
+      .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+      .call(d3.behavior.drag()
+        .origin(function(d) { return {x: x(d)}; })
+        .on("dragstart", function(d) {
+          dragging[d] = x(d);
+          background.attr("visibility", "hidden");
+        })
+        .on("drag", function(d) {
+          dragging[d] = Math.min(width, Math.max(0, d3.event.x));
+          foreground.attr("d", path);
+          dimensions.sort(function(a, b) { return position(a) - position(b); });
+          x.domain(dimensions);
+          g.attr("transform", function(d) { return "translate(" + position(d) + ")"; })
+        })
+        .on("dragend", function(d) {
+          delete dragging[d];
+          transition(d3.select(this)).attr("transform", "translate(" + x(d) + ")");
+          transition(foreground).attr("d", path);
+          background
+              .attr("d", path)
+            .transition()
+              .delay(500)
+              .duration(0)
+              .attr("visibility", null);
+        }));
+
+    g.append("g")
+      .attr("class", "axis")
+      .each(function(d) { d3.select(this).call(axis.scale(y[d])); })
+      .append("text")
+      .style("text-anchor", "middle")
+      .attr("y", -9)
+      .text(function(d) { return d; });
+
+    g.append("g")
+      .attr("class", "brush")
+      .each(function(d) {
+        d3.select(this).call(y[d].brush = d3.svg.brush().y(y[d]).on("brushstart", brushstart).on("brush", brush));
+      })
+      .selectAll("rect")
+      .attr("x", -8)
+      .attr("width", 16);
+
+  function position(d) {
+    var v = dragging[d];
+    return v == null ? x(d) : v;
+  }
+
+  function transition(g) {
+    return g.transition().duration(500);
+  }
+
+  function path(d) {
+    return line(dimensions.map(function(p) { return [position(p), y[p](d[p])]; }));
+  }
+
+  function brushstart() {
+    d3.event.sourceEvent.stopPropagation();
+  }
+
+  function brush() {
+    var actives = dimensions.filter(function(p) { return !y[p].brush.empty(); }),
+        extents = actives.map(function(p) { return y[p].brush.extent(); });
+    foreground.style("display", function(d) {
+      return actives.every(function(p, i) {
+      return extents[i][0] <= d[p] && d[p] <= extents[i][1];
+      }) ? null : "none";
+    });
+  }
+}
+
+function scatterplot(location)
+{
+  var margin = {top: 20, right: 20, bottom: 20, left: 32},
+      width = 250 - margin.left - margin.right,
+      height = 250 - margin.top - margin.bottom;
+
+  // setup x 
+  var xValue = function(d) { return d.x; }, 
+      xScale = d3.scale.linear().range([0, width]), 
+      xMap = function(d) { return xScale(xValue(d));}, 
+      xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+
+  // setup y
+  var yValue = function(d) { return d.y; }, 
+      yScale = d3.scale.linear().range([height, 0]), 
+      yMap = function(d) { return yScale(yValue(d));}, 
+      yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+  // setup fill color
+  var cValue = function(d) { return d.attr;},
+      color = d3.scale.category10();
+
+  // add the graph canvas to the body of the webpage
+  var svg = d3.select(location).append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  mds_data.forEach(function(d) {
+      d.x = + d.x;
+      d.y = + d.y;
+    });
+
+  // add buffer to data domain to avoid overlapping (dots and axis)
+  xScale.domain([d3.min(mds_data, xValue)-0.5, d3.max(mds_data, xValue)+0.5]);
+  yScale.domain([d3.min(mds_data, yValue)-0.5, d3.max(mds_data, yValue)+0.5]);
+
+  // x-axis
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", -6)
+      .style("text-anchor", "end")
+      .text("x axis");
+
+  // y-axis
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+      .attr("class", "label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("y axis");
+
+  // draw dots
+  svg.selectAll(".dot")
+      .data(mds_data)
+      .enter().append("circle")
+      .attr("class", "dot")
+      .attr("r", 3.5)
+      .attr("cx", xMap)
+      .attr("cy", yMap)
+      .style("fill", function(d) { return color(cValue(d));});
+
+  // insert legend for each attribute
+  var legend = svg.selectAll(".legend")
+      .data(color.domain())
+      .enter()
+      .append("g")
+      .classed("legend", true)
+      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+    legend.append("circle")
+      .attr("r", 3.5)
+      .attr("cx", width + 15)
+      .attr("fill", color);
+
+    legend.append("text")
+      .attr("x", width - 5 )
+      .attr("dy", ".35em")
+      .text(function(d) { return d; });
+
+
+}
+
+function agechart(location)
+{
+  var data = d3.nest()
+    .key(function(d) { return d["age_segment"]; })
+    .rollup(function(v) { return v.length; })
+    .entries(pc_data);
+
+  data.sort(function(x, y){
+   return d3.ascending(x.key, y.key);
+  })
+
+  console.log( data )
+
+  var margin = {top: 20, right: 20, bottom: 20, left: 35},
+      width = 250 - margin.left - margin.right,
+      height = 250 - margin.top - margin.bottom,
+      barHeight = 30,
+      percent = d3.format('%');
+
+  var xScale = d3.scale.linear()
+    .range([0, width]); // the pixel range to map to
+
+  var yScale = d3.scale.ordinal()
+    .rangeRoundBands([0, height], 0.5);
+
+  var xAxis = d3.svg.axis()
+      .scale(xScale)
+      .orient('bottom')
+      .ticks(5);
+
+  var yAxis = d3.svg.axis()
+      .scale(yScale)
+      .orient('left');
+
+  xScale.domain([0, 35]); 
+  yScale.domain(data.map(function (d) {
+      return d.key;
+  }));
+
+  var svg = d3.select(location).append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    svg.append('g')
+      .attr('class', 'x axis')
+      .attr('transform', 'translate(0,' + height + ')')
+      .call(xAxis);
+
+    svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis);
+
+    svg.selectAll('.bar')
+      .data(data)
+      .enter().append('rect')
+      .attr('class', 'bar')
+      .style("fill", "#4682b4")
+      .attr('y', function (d) { return yScale(d.key);})
+      .attr('width', function (d) { return xScale(d.values); })
+      .attr('height', yScale.rangeBand);
+
+}
+
+
+corr_gram("#corr-chart");
+par_coordinate("#pc-graph");
+scatterplot("#scatter-plot");
+agechart("#age-rowchart");
+
+
+</script>
+</html>
