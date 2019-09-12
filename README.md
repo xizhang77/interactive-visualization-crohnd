@@ -25,11 +25,11 @@ README.md
 * All the charts and front-end code can be found in /templates/index.html
 
 ## Charts in framework
-Here are totally 4 charts in the visulazation framework:
+Here are totally 4 charts in the visualization framework:
 
 * The correlogram shows the correlations between each features
 * The scatter plot shows the embedded features in 2D space, which also indicate the correlations (if two features are close to each other, then they are high correlated)
-* Age segment bar chart shows the distribuation of patients by ages
+* Age segment bar chart shows the distribution of patients by ages
 * Detail view in Parallel Coordinate for all the data in the datasets
 
 ### Parallel Coordinate 
