@@ -2,8 +2,8 @@
 <html>
 <head>
   <title>Dashboard</title>
-  <link rel="stylesheet" href="static/lib/css//bootstrap.min.css">
-  <link rel="stylesheet" href="static/lib/css/keen-dashboards.css">
+  <link rel="stylesheet" href="static/css//bootstrap.min.css">
+  <link rel="stylesheet" href="static/css/dashboards.css">
   
   <script src="http://d3js.org/d3.v3.min.js"></script>
 
@@ -537,7 +537,7 @@ function agechart(location)
       .data(data)
       .enter().append('rect')
       .attr('class', 'bar')
-      .style("fill", "#4682b4")
+      .style("fill", "#DDA0DD")
       .attr('y', function (d) { return yScale(d.key);})
       .attr('width', function (d) { return xScale(d.values); })
       .attr('height', yScale.rangeBand);

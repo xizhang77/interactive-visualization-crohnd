@@ -50,8 +50,9 @@ app = Flask(__name__)
 @app.route("/data")
 
 def index():
-  df = pd.read_csv('input/CrohnD.csv')
-
+  df = pd.read_csv('input/CrohnD.csv', index_col = 0)
+  df = df.drop(columns='ID')
+  
   # Converting categorical data into numeric
   df['country'] = df['country'].astype('category')
   df['sex'] = df['sex'].astype('category')
